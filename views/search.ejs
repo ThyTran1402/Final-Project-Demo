@@ -1,0 +1,38 @@
+<div class="container" style="padding-top: 1rem">
+    <form action="/search" method="get">
+      <div class="mb-3">
+        <label for="searchQuery" class="form-label h3">Search:</label>
+        <input
+          type="text"
+          class="form-control"
+          id="searchQuery"
+          name="q"
+          autocomplete="off"
+        />
+        <button type="submit" class="btn btn-success" style="margin-top: 1rem">Go!</button>
+      </div>
+    </form>
+  
+    <% if (q) { %>
+    <h2 class="h3">Search results for "<%= q %>":</h2>
+    <table class="table">
+      <tr>
+        <th scope="col">UPC</th>
+        <th scope="col">Name</th>
+        <th scope="col">Brand</th>
+        <th scope="col">Price</th>
+        <th scope="col">Qty</th>
+      </tr>
+      <% data.forEach(entry => { %>
+      <tr>
+        <td><%= entry.upc %></td>
+        <td><%= entry.name %></td>
+        <td><%= entry.brand %></td>
+        <td><%= entry.price %></td>
+        <td><%= entry.qty %></td>
+      </tr>
+      <% }) %>
+    </table>
+    <% } %>
+  </div>
+  
