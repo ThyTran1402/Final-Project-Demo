@@ -13,7 +13,7 @@ const session = require("express-session");
 const flash = require("express-flash");
 const { exec } = require("child_process");
 const initializePassport = require("./auth/passport-config");
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
 //
 // Initialization
@@ -119,7 +119,7 @@ app.post("/register", checkNotAuthenticated, async (req, res) => {
     const id = await Date.now();
     if (process.env.USE_DB_AUTH == 1) {
       db.query(
-        "INSERT INTO users(id, name, email, password) VALUES($1, $2, $3, $4)",
+        "INSERT INTO users(id, name, email, password) VALUES($1, $2, $3, $4, $5)",
         [id, req.body.name, req.body.email, hashedPassword]
       );
     } else {
@@ -348,15 +348,15 @@ db.connect(async (err, client, release) => {
   if (process.env.INIT_DB == 1) {
     if (
       fs.existsSync("products.csv") &&
-      fs.existsSync("manages.csv") &&
+      fs.existsSync("managers.csv") &&
       fs.existsSync("stores.csv")
     ) {
-      await console.log("DB: Initializing tables");
+      await console.log("DB: Initializing all required tables");
       await client.query("DROP TABLE IF EXISTS products");
       await client.query("DROP TABLE IF EXISTS users CASCADE");
       await client.query("DROP TABLE IF EXISTS employees");
       await client.query("DROP TABLE IF EXISTS stores");
-      await client.query("DROP TABLE IF EXISTS manages");
+      await client.query("DROP TABLE IF EXISTS managers");
       await console.log("DB: Dropped tables");
       await client.query(
         "CREATE TABLE products (upc char(12) PRIMARY KEY, name varchar(50) NOT NULL, brand varchar(30) NOT NULL, price numeric(7, 2) NOT NULL, qty int NOT NULL, CONSTRAINT product_price_chk CHECK(price > 0), CONSTRAINT product_qty_chk CHECK(qty >= 0))"
@@ -368,7 +368,7 @@ db.connect(async (err, client, release) => {
         "CREATE TABLE stores (storeid BIGINT PRIMARY KEY, city TEXT NOT NULL, state char(2) NOT NULL)"
       );
       await client.query(
-        "CREATE TABLE manages (id BIGINT PRIMARY KEY, CONSTRAINT id_fk FOREIGN KEY(id) REFERENCES users(id));"
+        "CREATE TABLE managers (id BIGINT PRIMARY KEY, CONSTRAINT id_fk FOREIGN KEY(id) REFERENCES users(id));"
       );
       await client.query(
         "CREATE TABLE employees (id BIGINT PRIMARY KEY, CONSTRAINT id_fk FOREIGN KEY(id) REFERENCES users(id));"
@@ -389,13 +389,13 @@ db.connect(async (err, client, release) => {
             console.error(`exec error: ${error}`);
           }
           exec(
-            `psql -d postgres -c "\\copy Users FROM STDIN WITH DELIMITER ','CSV HEADER;" < manages.csv`,
+            `psql -d postgres -c "\\copy Users FROM STDIN WITH DELIMITER ','CSV HEADER;" < managers.csv`,
             (error, stdout, stderr) => {
               if (error) {
                 console.error(`exec error: ${error}`);
               }
               client.query("INSERT INTO employees(id) SELECT id FROM users");
-              client.query("INSERT INTO manages(id) SELECT id FROM users");
+              client.query("INSERT INTO managers(id) SELECT id FROM users");
             }
           );
         }
