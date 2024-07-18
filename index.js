@@ -119,7 +119,7 @@ app.post("/register", checkNotAuthenticated, async (req, res) => {
     const id = await Date.now();
     if (process.env.USE_DB_AUTH == 1) {
       db.query(
-        "INSERT INTO users(id, name, email, password) VALUES($1, $2, $3, $4, $5)",
+        "INSERT INTO users(id, name, email, password) VALUES($1, $2, $3, $4)",
         [id, req.body.name, req.body.email, hashedPassword]
       );
     } else {
@@ -209,7 +209,7 @@ app.post(
   checkEmployeeAuthenticated,
   async (req, res) => {
     await db.query(
-      "INSERT INTO products(upc, name, brand, price, qty) VALUES($1, $2, $3, $4, $5, $6)",
+      "INSERT INTO products(upc, name, brand, price, qty) VALUES($1, $2, $3, $4, $5)",
       [
         req.body.upc,
         req.body.name,
