@@ -216,7 +216,8 @@ app.post("/employee/newproduct", checkEmployeeAuthenticated, async (req, res) =>
         if (err) {
           console.error("Error executing query", err.stack);
           req.flash("info", "Error executing query");
-          req.render("employee/newproduct");
+          //req.render("employee/newproduct");
+          res.render("employee/newproduct");
         }
         req.flash("info", "Product created successfully");
         res.render("employee/newproduct");
@@ -231,30 +232,51 @@ app.get("/employee/updateproduct", checkEmployeeAuthenticated, (req, res) => {
 });
 
 // POST request handler for updating products
-app.post( "/employee/updateproduct", checkEmployeeAuthenticated, async (req, res) => {
-    try {
-      await db.query(
-        "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
-        [req.body.upc, req.body.price, req.body.qty],
-        (err) => {
-          if (err) {
-            console.error("Error executing query", err.stack);
-            req.flash("info", "Error executing query");
-            req.render("employee/updateproduct");
-          }
-          req.flash("info", "Product updated successfully");
-          res.render("employee/updateproduct");
-        }
-      );
+// app.post( "/employee/updateproduct", checkEmployeeAuthenticated, async (req, res) => {
+//     try {
+//       await db.query(
+//         "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
+//         [req.body.upc, req.body.price, req.body.qty],
+//         (err) => {
+//           if (err) {
+//             console.error("Error executing query", err.stack);
+//             req.flash("info", "Error executing query");
+//             req.render("employee/updateproduct");
+//           }
+//           req.flash("info", "Product updated successfully");
+//           res.render("employee/updateproduct");
+//         }
+//       );
+//       req.flash("info", "Product updated successfully");
+//       res.render("employee/updateproduct");
+//     } catch (err) {
+//       req.flash("info", "Error executing query");
+//       req.render("employee/updateproduct");
+//       console.error(err);
+//     }
+//   }
+// );
+
+
+app.post("/employee/updateproduct", checkEmployeeAuthenticated, async (req, res) => {
+  try {
+    const result = await db.query(
+      "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
+      [req.body.upc, req.body.price, req.body.qty]
+    );
+    
+    if (result.rowCount === 0) {
+      req.flash("info", "No product found with the given UPC");
+    } else {
       req.flash("info", "Product updated successfully");
-      res.render("employee/updateproduct");
-    } catch (err) {
-      req.flash("info", "Error executing query");
-      req.render("employee/updateproduct");
-      console.error(err);
     }
+    res.render("employee/updateproduct");
+  } catch (err) {
+    console.error("Error executing query", err);
+    req.flash("info", "Error updating product");
+    res.render("employee/updateproduct");
   }
-);
+});
 
 
 // FIXME: for debugging purposes, returns back all users in JSON format
@@ -276,39 +298,61 @@ function checkAuthenticated(req, res, next) {
   res.redirect("/login");
 }
 
-
-// function checkNotAuthenticated(req, res, next) {
-//   if (req.isAuthenticated()) {
-//     return res.redirect("/");
-//   }
-//   next();
-// }
+//middle-ware function 
+function checkNotAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return res.redirect("/");
+  }
+  next();
+}
 
 // Middle-ware function to check if the user is logged in as an employee by querying the employees database
+// async function checkEmployeeAuthenticated(req, res, next) {
+//   if (req.isAuthenticated()) {
+//     console.log("User ID:", req.user.id); // Log the user ID
+
+//     const results = await db.query(
+//       "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
+//       [req.user.id]
+//     );
+
+//     console.log("Query Results:", results.rows); // Log the query results
+
+//     if (results.rows[0].is_employee) {
+//       console.log("Employee authenticated successfully");
+//       return next();
+//     } else {
+//       console.log("Employee authentication failed: not employee");
+//       res.redirect("/");
+//     }
+//   } else {
+//     console.log("Employee authentication failed: not logged in");
+//     res.redirect("/login");
+//   }
+// }
+
+
 async function checkEmployeeAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
-    console.log("User ID:", req.user.id); // Log the user ID
-
-    const results = await db.query(
-      "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
-      [req.user.id]
-    );
-
-    console.log("Query Results:", results.rows); // Log the query results
-    
-    if (results.rows[0].is_employee) {
-      console.log("Employee authenticated successfully");
-      return next();
-    } else {
-      console.log("Employee authentication failed: not employee");
-      res.redirect("/");
+    try {
+      const results = await db.query(
+        "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
+        [req.user.id]
+      );
+      
+      if (results.rows[0].is_employee) {
+        return next();
+      } else {
+        res.redirect("/");
+      }
+    } catch (err) {
+      console.error("Error checking employee status:", err);
+      res.redirect("/login");
     }
   } else {
-    console.log("Employee authentication failed: not logged in");
     res.redirect("/login");
   }
 }
-
 
 
 //
