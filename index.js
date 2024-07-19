@@ -20,14 +20,14 @@ const port = process.env.PORT || 3000;
 //
 
 // Only use database authentication if process.env.USE_DB_AUTH is set to 1, otherwise use an array for debugging
-const users = [
-  {
-    id: 1,
-    name: "Manager",
-    email: "manager@onlinestore.com",
-    password: "managertest123",
-  },
-];
+// const users = [
+//   {
+//     id: 1,
+//     name: "Manager",
+//     email: "manager@onlinestore.com",
+//     password: "managertest123",
+//   },
+// ];
 if (process.env.USE_DB_AUTH == 1) {
   initializePassport(
     passport,
@@ -63,7 +63,7 @@ app.set("layout", "layouts/layout");
 app.use(expressLayouts);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static("client"));
 app.use(flash());
 app.use(
   session({
@@ -196,18 +196,13 @@ app.get("/employee", checkEmployeeAuthenticated, async (req, res) => {
 
 // Add a new product
 app.get(
-  "/employee/newproduct",
-  checkEmployeeAuthenticated,
-  async (req, res) => {
+  "/employee/newproduct", checkEmployeeAuthenticated, async (req, res) => {
     res.render("employee/newproduct", { response: null });
   }
 );
 
 // POST request handler for new products
-app.post(
-  "/employee/newproduct",
-  checkEmployeeAuthenticated,
-  async (req, res) => {
+app.post("/employee/newproduct", checkEmployeeAuthenticated, async (req, res) => {
     await db.query(
       "INSERT INTO products(upc, name, brand, price, qty) VALUES($1, $2, $3, $4, $5)",
       [
@@ -221,10 +216,10 @@ app.post(
         if (err) {
           console.error("Error executing query", err.stack);
           req.flash("info", "Error executing query");
-          req.render("/employee/newproduct");
+          req.render("employee/newproduct");
         }
         req.flash("info", "Product created successfully");
-        res.render("/employee/newproduct");
+        res.render("employee/newproduct");
       }
     );
   }
@@ -236,10 +231,7 @@ app.get("/employee/updateproduct", checkEmployeeAuthenticated, (req, res) => {
 });
 
 // POST request handler for updating products
-app.post(
-  "/employee/updateproduct",
-  checkEmployeeAuthenticated,
-  async (req, res) => {
+app.post( "/employee/updateproduct", checkEmployeeAuthenticated, async (req, res) => {
     try {
       await db.query(
         "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
@@ -248,17 +240,17 @@ app.post(
           if (err) {
             console.error("Error executing query", err.stack);
             req.flash("info", "Error executing query");
-            req.render("/employee/updateproduct");
+            req.render("employee/updateproduct");
           }
           req.flash("info", "Product updated successfully");
-          res.render("/employee/updateproduct");
+          res.render("employee/updateproduct");
         }
       );
       req.flash("info", "Product updated successfully");
-      res.render("/employee/updateproduct");
+      res.render("employee/updateproduct");
     } catch (err) {
       req.flash("info", "Error executing query");
-      req.render("/employee/updateproduct");
+      req.render("employee/updateproduct");
       console.error(err);
     }
   }
@@ -285,20 +277,25 @@ function checkAuthenticated(req, res, next) {
 }
 
 
-function checkNotAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return res.redirect("/");
-  }
-  next();
-}
+// function checkNotAuthenticated(req, res, next) {
+//   if (req.isAuthenticated()) {
+//     return res.redirect("/");
+//   }
+//   next();
+// }
 
 // Middle-ware function to check if the user is logged in as an employee by querying the employees database
 async function checkEmployeeAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
+    console.log("User ID:", req.user.id); // Log the user ID
+
     const results = await db.query(
       "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
       [req.user.id]
     );
+
+    console.log("Query Results:", results.rows); // Log the query results
+    
     if (results.rows[0].is_employee) {
       console.log("Employee authenticated successfully");
       return next();
