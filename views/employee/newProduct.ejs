@@ -1,7 +1,7 @@
 <div class="container">
     <h2>Add a new product</h2>
     <a href="/employee">Employee home</a>
-    <% if (messages.error) { %>
+    <% if (messages.info) { %>
     <p style="color: red"><%= messages.info %></p>
     <% } %>
     <form action="/employee/newproduct" method="POST">
@@ -28,5 +28,5 @@
       </div>
       <button type="submit">Add</button>
     </form>
-  </div>
+</div>
   
