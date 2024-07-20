@@ -23,9 +23,9 @@ const port = process.env.PORT || 3000;
 // const users = [
 //   {
 //     id: 1,
-//     name: "Manager",
-//     email: "manager@onlinestore.com",
-//     password: "managertest123",
+//     name: "Thy Tran",
+//     email: "thytran@gmail.com",
+//     password: "thytest123",
 //   },
 // ];
 if (process.env.USE_DB_AUTH == 1) {
@@ -57,7 +57,7 @@ if (process.env.USE_DB_AUTH == 1) {
 }
 
 app.set("view engine", "ejs");
-app.set("views", __dirname + "/views");
+app.set("views", __dirname + "/views/employee");
 app.set("layout", "layouts/layout");
 
 app.use(expressLayouts);
@@ -216,11 +216,11 @@ app.post("/employee/newproduct", checkEmployeeAuthenticated, async (req, res) =>
         if (err) {
           console.error("Error executing query", err.stack);
           req.flash("info", "Error executing query");
-          //req.render("employee/newproduct");
-          res.render("employee/newproduct");
+          req.render("employee/newproduct");
+          req.render("employee/newproduct");
         }
         req.flash("info", "Product created successfully");
-        res.render("employee/newproduct");
+        req.render("employee/newproduct");
       }
     );
   }
