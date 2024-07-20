@@ -1,6 +1,5 @@
+//Imports
 
-
-// Imports
 require("dotenv").config();
 const fs = require("fs");
 const express = require("express");
@@ -14,10 +13,6 @@ const flash = require("express-flash");
 const { exec } = require("child_process");
 const initializePassport = require("./auth/passport-config");
 const port = process.env.PORT || 3000;
-
-//
-// Initialization
-//
 
 // Only use database authentication if process.env.USE_DB_AUTH is set to 1, otherwise use an array for debugging
 // const users = [
@@ -57,13 +52,13 @@ if (process.env.USE_DB_AUTH == 1) {
 }
 
 app.set("view engine", "ejs");
-app.set("views", __dirname + "/views/employee");
+app.set("views", __dirname + "/views");
 app.set("layout", "layouts/layout");
 
 app.use(expressLayouts);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(express.static("client"));
+app.use(express.static("public"));
 app.use(flash());
 app.use(
   session({
@@ -172,6 +167,13 @@ app.get("/stores", async (req, res) => {
   res.render("stores", { data: result.rows });
 });
 
+// TODO: password reset
+// app.get("/password", checkAuthenticated, async (req, res) => {
+//   res.render("password");
+// });
+// app.post("/password", checkAuthenticated, async (req, res) => {
+//   //if (bcrypt.compare(req.body.oldPassword, req.user.password))
+// });
 
 // Employees route, copies search functionality from /search
 app.get("/employee", checkEmployeeAuthenticated, async (req, res) => {
@@ -196,13 +198,18 @@ app.get("/employee", checkEmployeeAuthenticated, async (req, res) => {
 
 // Add a new product
 app.get(
-  "/employee/newproduct", checkEmployeeAuthenticated, async (req, res) => {
+  "/employee/newproduct",
+  checkEmployeeAuthenticated,
+  async (req, res) => {
     res.render("employee/newproduct", { response: null });
   }
 );
 
 // POST request handler for new products
-app.post("/employee/newproduct", checkEmployeeAuthenticated, async (req, res) => {
+app.post(
+  "/employee/newproduct",
+  checkEmployeeAuthenticated,
+  async (req, res) => {
     await db.query(
       "INSERT INTO products(upc, name, brand, price, qty) VALUES($1, $2, $3, $4, $5)",
       [
@@ -216,11 +223,10 @@ app.post("/employee/newproduct", checkEmployeeAuthenticated, async (req, res) =>
         if (err) {
           console.error("Error executing query", err.stack);
           req.flash("info", "Error executing query");
-          req.render("employee/newproduct");
-          req.render("employee/newproduct");
+          req.render("/employee/newproduct");
         }
         req.flash("info", "Product created successfully");
-        req.render("employee/newproduct");
+        res.render("/employee/newproduct");
       }
     );
   }
@@ -232,51 +238,33 @@ app.get("/employee/updateproduct", checkEmployeeAuthenticated, (req, res) => {
 });
 
 // POST request handler for updating products
-// app.post( "/employee/updateproduct", checkEmployeeAuthenticated, async (req, res) => {
-//     try {
-//       await db.query(
-//         "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
-//         [req.body.upc, req.body.price, req.body.qty],
-//         (err) => {
-//           if (err) {
-//             console.error("Error executing query", err.stack);
-//             req.flash("info", "Error executing query");
-//             req.render("employee/updateproduct");
-//           }
-//           req.flash("info", "Product updated successfully");
-//           res.render("employee/updateproduct");
-//         }
-//       );
-//       req.flash("info", "Product updated successfully");
-//       res.render("employee/updateproduct");
-//     } catch (err) {
-//       req.flash("info", "Error executing query");
-//       req.render("employee/updateproduct");
-//       console.error(err);
-//     }
-//   }
-// );
-
-
-app.post("/employee/updateproduct", checkEmployeeAuthenticated, async (req, res) => {
-  try {
-    const result = await db.query(
-      "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
-      [req.body.upc, req.body.price, req.body.qty]
-    );
-    
-    if (result.rowCount === 0) {
-      req.flash("info", "No product found with the given UPC");
-    } else {
+app.post(
+  "/employee/updateproduct",
+  checkEmployeeAuthenticated,
+  async (req, res) => {
+    try {
+      await db.query(
+        "UPDATE products SET price = $2, qty = $3 WHERE upc = $1",
+        [req.body.upc, req.body.price, req.body.qty],
+        (err) => {
+          if (err) {
+            console.error("Error executing query", err.stack);
+            req.flash("info", "Error executing query");
+            req.render("/employee/updateproduct");
+          }
+          req.flash("info", "Product updated successfully");
+          res.render("/employee/updateproduct");
+        }
+      );
       req.flash("info", "Product updated successfully");
+      res.render("/employee/updateproduct");
+    } catch (err) {
+      req.flash("info", "Error executing query");
+      req.render("/employee/updateproduct");
+      console.error(err);
     }
-    res.render("employee/updateproduct");
-  } catch (err) {
-    console.error("Error executing query", err);
-    req.flash("info", "Error updating product");
-    res.render("employee/updateproduct");
   }
-});
+);
 
 
 // FIXME: for debugging purposes, returns back all users in JSON format
@@ -298,7 +286,6 @@ function checkAuthenticated(req, res, next) {
   res.redirect("/login");
 }
 
-//middle-ware function 
 function checkNotAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return res.redirect("/");
@@ -307,53 +294,28 @@ function checkNotAuthenticated(req, res, next) {
 }
 
 // Middle-ware function to check if the user is logged in as an employee by querying the employees database
-// async function checkEmployeeAuthenticated(req, res, next) {
-//   if (req.isAuthenticated()) {
-//     console.log("User ID:", req.user.id); // Log the user ID
-
-//     const results = await db.query(
-//       "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
-//       [req.user.id]
-//     );
-
-//     console.log("Query Results:", results.rows); // Log the query results
-
-//     if (results.rows[0].is_employee) {
-//       console.log("Employee authenticated successfully");
-//       return next();
-//     } else {
-//       console.log("Employee authentication failed: not employee");
-//       res.redirect("/");
-//     }
-//   } else {
-//     console.log("Employee authentication failed: not logged in");
-//     res.redirect("/login");
-//   }
-// }
-
-
 async function checkEmployeeAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
-    try {
-      const results = await db.query(
-        "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
-        [req.user.id]
-      );
-      
-      if (results.rows[0].is_employee) {
-        return next();
-      } else {
-        res.redirect("/");
-      }
-    } catch (err) {
-      console.error("Error checking employee status:", err);
-      res.redirect("/login");
+    const results = await db.query(
+      "SELECT EXISTS (SELECT id FROM employees WHERE id = $1) AS is_employee",
+      [req.user.id]
+    );
+    if (results.rows[0].is_employee) {
+      console.log("Employee authenticated successfully");
+      return next();
+    } else {
+      console.log("Employee authentication failed: not employee");
+      res.redirect("/");
     }
   } else {
+    console.log("Employee authentication failed: not logged in");
     res.redirect("/login");
   }
 }
 
+/* process.on("unhandledRejection", (reason, promise) => {
+  console.log("Unhandled Rejection at:", reason.stack || reason);
+}); */
 
 //
 // PostgreSQL
@@ -392,12 +354,12 @@ db.connect(async (err, client, release) => {
       fs.existsSync("managers.csv") &&
       fs.existsSync("stores.csv")
     ) {
-      await console.log("DB: Initializing all required tables");
+      await console.log("DB: Initializing tables");
       await client.query("DROP TABLE IF EXISTS products");
       await client.query("DROP TABLE IF EXISTS users CASCADE");
       await client.query("DROP TABLE IF EXISTS employees");
       await client.query("DROP TABLE IF EXISTS stores");
-      await client.query("DROP TABLE IF EXISTS managers");
+      await client.query("DROP TABLE IF EXISTS manages");
       await console.log("DB: Dropped tables");
       await client.query(
         "CREATE TABLE products (upc char(12) PRIMARY KEY, name varchar(50) NOT NULL, brand varchar(30) NOT NULL, price numeric(7, 2) NOT NULL, qty int NOT NULL, CONSTRAINT product_price_chk CHECK(price > 0), CONSTRAINT product_qty_chk CHECK(qty >= 0))"
